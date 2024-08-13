@@ -1,0 +1,31 @@
+name: Update Package from Webhook
+
+on:
+  repository_dispatch:
+    types: [update-package]
+
+jobs:
+  update-package:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the branch
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.client_payload.branch_name }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.12.1'
+
+    - name: Update NPM package
+      run: npm update ${{ github.event.client_payload.package_name }}
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "updated ${{ github.event.client_payload.package_name }}"
+        git push origin ${{ github.event.client_payload.branch_name }}
