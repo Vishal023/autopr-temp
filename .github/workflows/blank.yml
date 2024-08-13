@@ -1,11 +1,11 @@
-name: Update Package from Webhook
+name: Set Specific Package Version and Create Pull Request
 
 on:
   repository_dispatch:
-    types: [update-package]
+    types: [update-package-version]
 
 jobs:
-  update-package:
+  set-package-version:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,13 +19,23 @@ jobs:
       with:
         node-version: '18.12.1'
 
-    - name: Update NPM package
-      run: npm update ${{ github.event.client_payload.package_name }}
+    - name: Install Specific Package Version
+      run: npm install ${{ github.event.client_payload.package_name }}@${{ github.event.client_payload.package_version }}
 
-    - name: Commit and Push Changes
+    - name: Commit changes
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git checkout -b update-${{ github.event.client_payload.package_name }}-${{ github.event.client_payload.package_version }}
         git add .
-        git commit -m "updated ${{ github.event.client_payload.package_name }}"
-        git push origin ${{ github.event.client_payload.branch_name }}
+        git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: update-${{ github.event.client_payload.package_name }}-${{ github.event.client_payload.package_version }}
+        commit-message: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
+        title: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
+        body: "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}."
+        base: ${{ github.event.client_payload.branch_name }}
