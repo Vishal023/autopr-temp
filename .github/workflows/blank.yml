@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [update-package-version]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   set-package-version:
     runs-on: ubuntu-latest
