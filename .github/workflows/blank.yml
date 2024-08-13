@@ -26,16 +26,17 @@ jobs:
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git checkout -b update-${{ github.event.client_payload.package_name }}-${{ github.event.client_payload.package_version }}
         git add .
         git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
+        git push origin ${{ github.event.client_payload.branch_name }}
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        branch: update-${{ github.event.client_payload.package_name }}-${{ github.event.client_payload.package_version }}
+        branch: ${{ github.event.client_payload.branch_name }}
         commit-message: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
         title: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
         body: "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}."
         base: ${{ github.event.client_payload.branch_name }}
+        branch-suffix: ''  # This prevents the action from appending a suffix to the branch name
