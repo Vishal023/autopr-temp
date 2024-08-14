@@ -32,27 +32,24 @@ jobs:
 
       - name: Install Specific Package Version
         run: |
-          git branch --show-current
+          echo "Current branch: $(git branch --show-current)"
           npm install "${{ github.event.client_payload.package_name }}@${{ github.event.client_payload.package_version }}" --save-exact
 
       - name: Commit changes
         run: |
+          echo "Diff on branch $(git branch --show-current):"
           git diff package.json
-          git branch --show-current 
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
-          git branch --show-current
           git push origin "${{ env.branch_name }}"
-          git branch --show-current
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: "${{ env.branch_name }}"
-          commit-message: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           title: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           body: "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}."
           base: ${{ github.event.client_payload.branch_name }}
