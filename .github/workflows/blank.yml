@@ -27,31 +27,16 @@ jobs:
         id: vars
         run: echo "new_branch_name=${{ github.event.client_payload.branch_name }}_pkg_update_$(date +%s)" >> $GITHUB_ENV
 
-      - name: Create a new branch
-        run: |
-          git checkout -b "${{ env.new_branch_name }}"
-
-      - name: Configure Git user
-        run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Install Specific Package Version
         run: |
           npm install "${{ github.event.client_payload.package_name }}@${{ github.event.client_payload.package_version }}" --save-exact
-
-      - name: Commit changes
-        run: |
-          git add .
-          git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
-          git push origin "${{ env.new_branch_name }}"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: "${{ env.new_branch_name }}"
+          base: ${{ github.event.client_payload.branch_name }}
+          commit-message: "Update ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           title: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           body: "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}."
-          base: ${{ github.event.client_payload.branch_name }}
-          branch-suffix: ''
