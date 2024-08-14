@@ -45,6 +45,10 @@ jobs:
           git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           git push origin "${{ env.branch_name }}"
 
+      - name: Show final diff
+        run: |
+          git log --oneline "${{ github.event.client_payload.branch_name }}..${{ env.branch_name }}"
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
