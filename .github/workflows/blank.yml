@@ -5,7 +5,7 @@ on:
     types: [update-package-version]
 
 permissions:
-  contents: write
+  contents: write  # Ensure the GITHUB_TOKEN has write access
   pull-requests: write
 
 jobs:
@@ -38,7 +38,6 @@ jobs:
 
       - name: Install Specific Package Version
         run: |
-          echo "Current branch: $(git branch --show-current)"
           npm install "${{ github.event.client_payload.package_name }}@${{ github.event.client_payload.package_version }}" --save-exact
 
       - name: Commit changes
@@ -47,20 +46,12 @@ jobs:
           git commit -m "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
           git push origin "${{ env.branch_name }}"
 
-      - name: Create Pull Request using GitHub API
-        run: |
-          pr_data=$(cat <<EOF
-          {
-            "title": "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}",
-            "head": "${{ env.branch_name }}",
-            "base": "${{ github.event.client_payload.branch_name }}",
-            "body": "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}.",
-            "maintainer_can_modify": true
-          }
-          EOF
-          )
-          curl -X POST \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls \
-            -d "$pr_data"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "${{ env.branch_name }}"
+          title: "Set ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}"
+          body: "This pull request sets ${{ github.event.client_payload.package_name }} to version ${{ github.event.client_payload.package_version }}."
+          base: ${{ github.event.client_payload.branch_name }}
+          branch-suffix: ''
