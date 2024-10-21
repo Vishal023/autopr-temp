@@ -1,6 +1,6 @@
 {
   "name": "autoprupdate",
-  "version": "1.0.0",
+  "version": "1.0.1-fix.0",
   "description": "",
   "main": "index.js",
   "scripts": {
