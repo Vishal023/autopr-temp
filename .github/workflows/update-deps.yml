@@ -1,0 +1,72 @@
+name: Update Dependencies from JSON
+
+on:
+  workflow_dispatch:
+    inputs:
+      partial_package_json:
+        description: 'Partial package.json (paste raw JSON, not stringified)'
+        required: true
+        type: string
+
+jobs:
+  update-deps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Save and parse input JSON
+        run: |
+          echo '${{ inputs.partial_package_json }}' > partial.json
+
+          node << 'EOF'
+          const fs = require('fs');
+          const partial = JSON.parse(fs.readFileSync('partial.json'));
+          const packageJsonPath = 'package.json';
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath));
+
+          const changed = [];
+
+          for (const section of ['dependencies', 'devDependencies']) {
+            if (partial[section]) {
+              packageJson[section] = packageJson[section] || {};
+              for (const [pkg, version] of Object.entries(partial[section])) {
+                if (packageJson[section][pkg] !== version) {
+                  packageJson[section][pkg] = version;
+                  changed.push(pkg);
+                }
+              }
+            }
+          }
+
+          fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+          fs.writeFileSync('changed.json', JSON.stringify(changed));
+          EOF
+
+      - name: Run npm install for changed packages
+        run: |
+          pkgs=$(node -p "require('./changed.json').join(' ')")
+          if [ -n \"$pkgs\" ]; then
+            npm install $pkgs
+          fi
+
+      - name: Commit and Push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout -b auto/update-dependencies
+          git add package.json package-lock.json
+          git commit -m "chore: update dependencies via GitHub Action" || echo "No changes to commit"
+          git push origin auto/update-dependencies
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: auto/update-dependencies
+          title: "Update dependencies via GitHub Action"
+          body: "This PR updates dependencies based on the JSON input from the GitHub Actions UI"
